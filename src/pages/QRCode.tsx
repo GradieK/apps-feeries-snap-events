@@ -1,14 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QrCode, Printer, Download } from "lucide-react";
+import { useParams } from "react-router-dom";
+import QRCode from "react-qr-code";
 
 const QRCodePage = () => {
+  const { slug } = useParams();
   const handlePrint = () => {
     window.print();
   };
 
   const tables = Array.from({ length: 26 }, (_, i) => i + 1);
-  const qrCodeUrl = "https://mariage.voeux.cd/";
+  const baseUrl = window.location.origin;
+  const qrCodeUrl = slug ? `${baseUrl}/${slug}` : `${baseUrl}/`;
 
   return (
     <div className="min-h-screen bg-gradient-elegant">
@@ -26,7 +30,7 @@ const QRCodePage = () => {
                 Imprimer
               </Button>
               <Button 
-                onClick={() => window.location.href = "/admin"} 
+                onClick={() => window.location.href = slug ? `/${slug}/admin` : "/"} 
                 variant="elegant" 
                 size="sm"
               >
@@ -68,15 +72,7 @@ const QRCodePage = () => {
                 <CardContent className="text-center space-y-4">
                   {/* QR Code Placeholder */}
                   <div className="mx-auto w-48 h-48 border-2 border-gold/30 rounded-lg flex items-center justify-center bg-cream">
-                    <div className="text-center">
-                      <QrCode className="mx-auto h-16 w-16 text-gold mb-2" />
-                      <p className="text-xs text-muted-foreground">
-                        QR Code ici
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono break-all">
-                        {qrCodeUrl}
-                      </p>
-                    </div>
+                    <QRCode value={`${qrCodeUrl}?t=${tableNumber}`} size={176} />
                   </div>
                   
                   {/* URL lisible */}
@@ -85,7 +81,7 @@ const QRCodePage = () => {
                       Livre d'Or Digital
                     </p>
                     <p className="text-xs text-muted-foreground break-all">
-                      {qrCodeUrl}
+                      {`${qrCodeUrl}?t=${tableNumber}`}
                     </p>
                   </div>
                   

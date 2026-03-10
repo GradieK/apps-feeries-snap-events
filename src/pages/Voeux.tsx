@@ -20,6 +20,7 @@ import {
   Volume2,
   X
 } from 'lucide-react';
+import { useEvent } from "@/hooks/useEvent"
 import { useToast } from '@/hooks/use-toast';
 import { useWishUpload } from '@/hooks/useWishUpload';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -27,8 +28,9 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 const Voeux = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { event, isLoading: isEventLoading, error: eventError } = useEvent();
   const { toast } = useToast();
-  const { uploadWish, isUploading } = useWishUpload();
+  const { uploadWish, isUploading } = useWishUpload(event?.id);
   const { 
     isRecording, 
     audioBlob, 
@@ -55,6 +57,17 @@ const Voeux = () => {
     }
   }, [name, table, navigate]);
 
+  useEffect(() => {
+    if (!isEventLoading && (eventError || !event)) {
+      toast({
+        title: "Événement introuvable",
+        description: "Le QR code semble invalide ou l'événement n'est pas accessible.",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [event, eventError, isEventLoading, navigate, toast]);
+
   const handleStartRecording = async () => {
     try {
       await startRecording();
@@ -68,7 +81,7 @@ const Voeux = () => {
   };
 
   const handleSendText = async () => {
-    if (!textMessage.trim() || !name || !table) return;
+    if (!event?.id || !textMessage.trim() || !name || !table) return;
     
     const success = await uploadWish({
       name,
@@ -83,7 +96,7 @@ const Voeux = () => {
   };
 
   const handleSendAudio = async () => {
-    if (!audioBlob || !name || !table) return;
+    if (!event?.id || !audioBlob || !name || !table) return;
     
     // Create file from blob
     const audioFile = new File([audioBlob], `audio_${name}_${Date.now()}.webm`, {
@@ -103,7 +116,7 @@ const Voeux = () => {
   };
 
   const handleSendFile = async () => {
-    if (!selectedFile || !name || !table) return;
+    if (!event?.id || !selectedFile || !name || !table) return;
     
     const fileType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
     

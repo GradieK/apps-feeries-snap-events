@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {useParams} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,18 +12,22 @@ import { useToast } from "@/hooks/use-toast";
 import weddingHero from "@/assets/wedding-hero.jpg";
 
 const Home = () => {
+  const {slug} = useParams()
+  const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
   const [table, setTable] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Récupérer le prénom sauvegardé
     const savedName = localStorage.getItem("wedding-guest-name");
-    if (savedName) {
-      setName(savedName);
-    }
+    if (savedName) setName(savedName);
   }, []);
+
+  useEffect(() => {
+    const t = searchParams.get("t");
+    if (t && /^\d+$/.test(t)) setTable(t);
+  }, [searchParams]);
 
   const handleContinue = () => {
     if (!name.trim()) {
@@ -46,7 +52,7 @@ const Home = () => {
     localStorage.setItem("wedding-guest-name", name.trim());
     
     // Rediriger vers la page de vœux avec paramètres
-    navigate(`/voeux?t=${table}&n=${encodeURIComponent(name.trim())}`);
+    navigate(`/${slug}/voeux?t=${table}&n=${encodeURIComponent(name.trim())}`);
   };
 
   return (

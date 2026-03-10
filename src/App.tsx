@@ -8,6 +8,7 @@ import Voeux from "./pages/Voeux";
 import Admin from "./pages/Admin";
 import QRCodePage from "./pages/QRCode";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -19,9 +20,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/voeux" element={<Voeux />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/qr-codes" element={<QRCodePage />} />
+          <Route path="/dashboard" element={<AdminDashboard />} />
+          <Route path="/:slug" element={<Home />} />
+          <Route path="/:slug/voeux" element={<Voeux />} />
+          <Route path="/:slug/admin" element={<Admin />} />
+          <Route path="/:slug/qr-codes" element={<QRCodePage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

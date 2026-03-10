@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,13 +22,15 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useEvent } from "@/hooks/useEvent";
+import { useAuth } from "@/hooks/useAuth";
 
 // Types pour les vœux
 type WishType = "text" | "audio" | "image" | "video";
 
 interface Wish {
   id: string;
-  name: string;
+  guest_name: string;
   table_number: number;
   type: WishType;
   content?: string | null;
@@ -39,20 +42,23 @@ interface Wish {
 }
 
 const Admin = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
   const [selectedTable, setSelectedTable] = useState<string>("all");
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { event, isLoading: isEventLoading, error: eventError } = useEvent();
 
   // Charger les vœux depuis Supabase avec sécurité renforcée
   const loadWishes = async () => {
+    if (!event?.id || !user) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_wishes_admin', {
-        admin_password: 'Voeuxdor'
-      });
+      const { data, error } = await supabase
+      .from("wishes")
+      .select("*")
+      .eq("event_id", event.id);
 
       if (error) {
         throw error;
@@ -75,29 +81,31 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadWishes();
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Authentification simple avec mot de passe unique
-    if (password === "Voeuxdor") {
-      setIsAuthenticated(true);
+    if (!isAuthLoading && !user) {
       toast({
-        title: "Connexion réussie 💕",
-        description: "Bienvenue dans le panneau d'administration des vœux",
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour accéder aux vœux.",
+        variant: "destructive",
       });
-    } else {
+      navigate("/dashboard");
+    }
+  }, [isAuthLoading, user, navigate, toast]);
+
+  useEffect(() => {
+    if (!isAuthLoading && user && !isEventLoading && event && !eventError) {
+      void loadWishes();
+    }
+  }, [isAuthLoading, user, isEventLoading, event, eventError]);
+
+  useEffect(() => {
+    if (!isEventLoading && (eventError || !event)) {
       toast({
-        title: "Accès refusé",
-        description: "Mot de passe incorrect",
+        title: "Événement introuvable",
+        description: "Impossible de charger l'événement pour l'administration.",
         variant: "destructive",
       });
     }
-  };
+  }, [event, eventError, isEventLoading, toast]);
 
   const handleExportZip = async () => {
     try {
@@ -113,7 +121,7 @@ const Admin = () => {
       const textWishes = wishes.filter(wish => wish.type === "text");
       if (textWishes.length > 0) {
         const textContent = textWishes.map(wish => 
-          `=== ${wish.name} - Table ${wish.table_number} ===\n` +
+          `=== ${wish.guest_name} - Table ${wish.table_number} ===\n` +
           `Date: ${new Date(wish.created_at).toLocaleString("fr-FR")}\n` +
           `Message: ${wish.content || 'Aucun contenu'}\n\n`
         ).join('');
@@ -130,7 +138,7 @@ const Admin = () => {
             if (response.ok) {
               const blob = await response.blob();
               const extension = wish.filename?.split('.').pop() || (wish.type === 'audio' ? 'webm' : wish.type === 'image' ? 'jpg' : 'mp4');
-              const fileName = `${wish.type}s/${wish.name}_table${wish.table_number}_${new Date(wish.created_at).toISOString().split('T')[0]}.${extension}`;
+              const fileName = `${wish.type}s/${wish.guest_name}_table${wish.table_number}_${new Date(wish.created_at).toISOString().split('T')[0]}.${extension}`;
               zip.file(fileName, blob);
             }
           } catch (error) {
@@ -169,7 +177,7 @@ const Admin = () => {
     const csvContent = [
       ["Nom", "Table", "Message", "Date"],
       ...textWishes.map(wish => [
-        wish.name,
+        wish.guest_name,
         wish.table_number.toString(),
         wish.content || "",
         new Date(wish.created_at).toLocaleString("fr-FR")
@@ -220,40 +228,16 @@ const Admin = () => {
     media: wishes.filter(w => w.type === "image" || w.type === "video").length,
   };
 
-  if (!isAuthenticated) {
+  if (isAuthLoading || isEventLoading || !event) {
     return (
       <div className="min-h-screen bg-gradient-elegant flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-elegant border-gold/20">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-elegant-black flex items-center justify-center gap-2">
               <Heart className="h-6 w-6 text-gold fill-gold" />
-              Accès Sécurisé
+              Chargement des vœux...
             </CardTitle>
-            <p className="text-elegant-gray mt-2">
-              Cette section est réservée aux mariés.
-            </p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Veuillez entrer le mot de passe..."
-                  className="border-gold/30 focus:border-gold"
-                  required
-                />
-              </div>
-              
-              <Button type="submit" variant="wedding" size="lg" className="w-full">
-                <LogIn className="mr-2 h-4 w-4" />
-                Entrer
-              </Button>
-            </form>
-          </CardContent>
         </Card>
       </div>
     );
@@ -280,13 +264,6 @@ const Admin = () => {
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 {isLoading ? 'Actualisation...' : 'Actualiser'}
-              </Button>
-              <Button
-                onClick={() => setIsAuthenticated(false)}
-                variant="outline"
-                size="sm"
-              >
-                Déconnexion
               </Button>
             </div>
           </div>
@@ -425,7 +402,7 @@ const Admin = () => {
                           {new Date(wish.created_at).toLocaleString("fr-FR")}
                         </div>
                       </div>
-                      <div className="font-semibold text-elegant-black">{wish.name}</div>
+                      <div className="font-semibold text-elegant-black">{wish.guest_name}</div>
                     </div>
                   
                     <div className="mt-3">
@@ -449,7 +426,7 @@ const Admin = () => {
                         <div className="bg-secondary/30 p-3 rounded">
                           <img 
                             src={wish.file_url} 
-                            alt={`Photo de ${wish.name}`}
+                            alt={`Photo de ${wish.guest_name}`}
                             className="max-w-xs max-h-40 rounded object-cover"
                           />
                           <p className="text-xs text-muted-foreground mt-1">{wish.filename}</p>

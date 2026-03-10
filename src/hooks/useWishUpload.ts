@@ -12,7 +12,7 @@ interface WishData {
   file?: File;
 }
 
-export const useWishUpload = () => {
+export const useWishUpload = (eventId?: string) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -20,6 +20,10 @@ export const useWishUpload = () => {
     setIsUploading(true);
     
     try {
+      if (!eventId) {
+        throw new Error("Événement introuvable: veuillez recharger la page (QR code) et réessayer.");
+      }
+
       let fileUrl = null;
       let filename = null;
       let mimeType = null;
@@ -28,12 +32,12 @@ export const useWishUpload = () => {
       // Handle file upload for audio, image, video
       if (wishData.file && wishData.type !== 'text') {
         const bucket = wishData.type === 'audio' ? 'audio-wishes' : 'media-wishes';
-        const folder = `table_${wishData.tableNumber}`;
+        const folder = `${eventId}/table_${wishData.tableNumber}`;
         const timestamp = Date.now();
         const fileExtension = wishData.file.name.split('.').pop();
         const fileName = `${folder}/${wishData.name.toLowerCase().replace(/\s+/g, '_')}_${timestamp}.${fileExtension}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from(bucket)
           .upload(fileName, wishData.file, {
             cacheControl: '3600',
@@ -59,7 +63,8 @@ export const useWishUpload = () => {
       const { error: insertError } = await supabase
         .from('wishes')
         .insert({
-          name: wishData.name,
+          event_id: eventId,
+          guest_name: wishData.name,
           table_number: wishData.tableNumber,
           type: wishData.type,
           content: wishData.content || null,
@@ -70,7 +75,10 @@ export const useWishUpload = () => {
         });
 
       if (insertError) {
-        throw new Error(`Erreur de sauvegarde: ${insertError.message}`);
+        const details = [insertError.message, insertError.details, insertError.hint, insertError.code]
+          .filter(Boolean)
+          .join(" • ");
+        throw new Error(`Erreur de sauvegarde: ${details}`);
       }
 
       toast({
