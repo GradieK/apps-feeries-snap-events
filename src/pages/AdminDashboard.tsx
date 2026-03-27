@@ -9,7 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Heart, Link as LinkIcon, LogOut, PlusCircle, QrCode, Settings2, Users } from "lucide-react";
+import { 
+  Calendar, 
+  Heart, 
+  Link as LinkIcon, 
+  LogOut, 
+  PlusCircle, 
+  QrCode, 
+  Settings2, 
+  Users,
+  Sparkles,
+  ChevronRight,
+  User,
+  LayoutGrid
+} from "lucide-react";
 
 type EventRow = Tables<"events">;
 type NewEvent = Pick<TablesInsert<"events">, "name" | "client_name" | "event_date" | "status">;
@@ -71,7 +84,6 @@ const AdminDashboard = () => {
     } else {
       setEvents([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -79,34 +91,24 @@ const AdminDashboard = () => {
     setIsAuthSubmitting(true);
     try {
       if (!authEmail || !authPassword) return;
-
-      if (isLoginMode) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authEmail,
-          password: authPassword,
-        });
-        if (error) throw error;
-        toast({
-          title: "Connexion réussie",
-          description: "Bienvenue dans votre espace d'administration.",
-        });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email: authEmail,
-          password: authPassword,
-        });
-        if (error) throw error;
-        toast({
-          title: "Compte créé",
-          description: "Vérifiez vos emails pour confirmer votre compte.",
-        });
-        setIsLoginMode(true);
-      }
+  
+      // On ne garde QUE la connexion. L'inscription est gérée par toi sur Supabase.
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Bienvenue",
+        description: "Connexion établie avec succès.",
+      });
     } catch (error) {
       console.error(error);
       toast({
-        title: "Erreur d'authentification",
-        description: error instanceof Error ? error.message : "Veuillez réessayer.",
+        title: "Accès refusé",
+        description: "Identifiants invalides ou compte non autorisé.",
         variant: "destructive",
       });
     } finally {
@@ -118,11 +120,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!user) return;
     if (!newEvent.name.trim()) {
-      toast({
-        title: "Nom requis",
-        description: "Veuillez saisir un nom d'événement.",
-        variant: "destructive",
-      });
+      toast({ title: "Nom requis", variant: "destructive" });
       return;
     }
 
@@ -132,9 +130,6 @@ const AdminDashboard = () => {
       let slug = baseSlug;
       let suffix = 1;
 
-      // s'assurer que le slug est unique
-      // (boucle simple côté client, acceptable pour quelques events)
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data, error } = await supabase
           .from("events")
@@ -164,22 +159,17 @@ const AdminDashboard = () => {
       if (error) throw error;
 
       setEvents((prev) => [data as EventRow, ...prev]);
-      setNewEvent({
-        name: "",
-        client_name: "",
-        event_date: "",
-        status: "draft",
-      });
+      setNewEvent({ name: "", client_name: "", event_date: "", status: "draft" });
 
       toast({
         title: "Événement créé",
-        description: "Vous pouvez maintenant partager le lien ou générer les QR codes.",
+        description: "Votre nouvel univers Féerie est prêt.",
       });
     } catch (error) {
       console.error(error);
       toast({
-        title: "Erreur de création",
-        description: error instanceof Error ? error.message : "Impossible de créer l'événement.",
+        title: "Erreur",
+        description: "Impossible de créer l'événement.",
         variant: "destructive",
       });
     } finally {
@@ -189,43 +179,48 @@ const AdminDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-elegant">
-        <div className="text-center text-elegant-gray">Chargement...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+        <div className="flex flex-col items-center gap-4">
+          <Sparkles className="h-8 w-8 text-gold animate-pulse" />
+          <p className="text-gold/50 text-xs tracking-[0.3em] uppercase">Initialisation...</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-elegant flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-elegant border-gold/20">
-          <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl text-elegant-black flex items-center justify-center gap-2">
-              <Heart className="h-6 w-6 text-gold fill-gold" />
-              Espace Mariés
-            </CardTitle>
-            <p className="text-elegant-gray text-sm">
-              Connectez-vous pour créer et gérer vos événements.
-            </p>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/[0.02] border-white/10 backdrop-blur-xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto p-4 rounded-full bg-gold/5 border border-gold/10 w-fit">
+              <Heart className="h-8 w-8 text-gold fill-gold/20" />
+            </div>
+            <div className="space-y-1">
+              <CardTitle className="text-2xl text-white tracking-tight">Espace Créateur</CardTitle>
+              <p className="text-muted-foreground text-sm">Gérez l'élégance de vos événements.</p>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
+            <form onSubmit={handleAuthSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-xs uppercase tracking-widest text-gold/70">Email professionnel</Label>
                 <Input
                   id="email"
                   type="email"
+                  className="bg-black/40 border-white/5 focus:border-gold/50 h-12 rounded-xl"
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
-                  placeholder="vous@example.com"
+                  placeholder="nom@feerie.com"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password" title="Mot de passe" className="text-xs uppercase tracking-widest text-gold/70">Secret</Label>
                 <Input
                   id="password"
                   type="password"
+                  className="bg-black/40 border-white/5 focus:border-gold/50 h-12 rounded-xl"
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
                   placeholder="••••••••"
@@ -234,27 +229,22 @@ const AdminDashboard = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full"
-                variant="wedding"
+                className="w-full btn-gold h-12 rounded-xl uppercase tracking-widest text-xs font-bold"
                 disabled={isAuthSubmitting}
               >
-                {isAuthSubmitting
-                  ? "Veuillez patienter..."
-                  : isLoginMode
-                    ? "Se connecter"
-                    : "Créer un compte"}
+                {isAuthSubmitting ? "Traitement..." : isLoginMode ? "Se connecter" : "Créer mon espace"}
               </Button>
             </form>
-
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              {isLoginMode ? "Pas encore de compte ?" : "Vous avez déjà un compte ?"}{" "}
-              <button
-                type="button"
-                className="text-gold underline-offset-2 hover:underline"
-                onClick={() => setIsLoginMode((v) => !v)}
+            <div className="mt-8 text-center">
+              <a
+                href="https://wa.me/243993650147?text=Bonjour%20Féerie%20Snap%20Event,%20je%20souhaite%20obtenir%20mes%20accès%20créateur."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-gold transition-colors underline-offset-4 hover:underline flex items-center justify-center gap-2"
               >
-                {isLoginMode ? "Créer un compte" : "Se connecter"}
-              </button>
+                <Sparkles className="h-3 w-3 text-gold" />
+                Devenir partenaire Féerie ? Contactez-nous
+              </a>
             </div>
           </CardContent>
         </Card>
@@ -263,190 +253,185 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-elegant">
-      <div className="bg-card border-b border-gold/20 shadow-soft">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Heart className="h-6 w-6 text-gold fill-gold" />
-            <h1 className="text-2xl font-bold text-elegant-black">Tableau de bord</h1>
+    <div className="min-h-screen bg-[#050505] text-slate-200">
+      {/* Header Premium */}
+      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-2 rounded-lg bg-gold/10 border border-gold/20">
+              <LayoutGrid className="h-5 w-5 text-gold" />
+            </div>
+            <h1 className="text-sm font-light tracking-[0.3em] uppercase text-white hidden sm:block">
+              Console <span className="text-gold font-medium">Dashboard</span>
+            </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user.email}
-            </span>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
+              <User className="h-3 w-3 text-gold" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{user.email}</span>
+            </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="text-muted-foreground hover:text-red-400 hover:bg-red-400/5 transition-all"
               onClick={async () => {
                 await signOut();
                 navigate("/dashboard");
               }}
             >
-              <LogOut className="h-4 w-4 mr-1" />
-              Déconnexion
+              <LogOut className="h-4 w-4 mr-2" />
+              Quitter
             </Button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+      <div className="container mx-auto px-4 py-10 max-w-6xl space-y-12">
+        
         {/* Création d'événement */}
-        <Card className="shadow-soft border-gold/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-elegant-black">
-              <PlusCircle className="h-5 w-5 text-gold" />
-              Créer un nouvel événement
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateEvent} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-1 md:col-span-2">
-                <Label>Nom de l'événement</Label>
-                <Input
-                  value={newEvent.name}
-                  onChange={(e) => setNewEvent((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Mariage Sarah & Julien"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Nom des mariés / client</Label>
-                <Input
-                  value={newEvent.client_name ?? ""}
-                  onChange={(e) => setNewEvent((prev) => ({ ...prev, client_name: e.target.value }))}
-                  placeholder="Sarah & Julien"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={newEvent.event_date ?? ""}
-                  onChange={(e) => setNewEvent((prev) => ({ ...prev, event_date: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1 md:col-span-4 flex justify-end">
-                <Button
-                  type="submit"
-                  variant="wedding"
-                  disabled={isCreatingEvent}
-                >
-                  {isCreatingEvent ? "Création..." : "Créer l'événement"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <PlusCircle className="h-5 w-5 text-gold" />
+            <h2 className="text-lg font-bold tracking-widest uppercase">Nouvel Univers</h2>
+          </div>
+          
+          <Card className="bg-white/[0.02] border-white/5 rounded-2xl overflow-hidden backdrop-blur-sm">
+            <CardContent className="p-8">
+              <form onSubmit={handleCreateEvent} className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Nom de l'évènement</Label>
+                  <Input
+                    className="bg-black/20 border-white/10 h-12 rounded-xl focus:border-gold/50"
+                    value={newEvent.name}
+                    onChange={(e) => setNewEvent((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="ex: Mariage Royal"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Client / Mariés</Label>
+                  <Input
+                    className="bg-black/20 border-white/10 h-12 rounded-xl focus:border-gold/50"
+                    value={newEvent.client_name ?? ""}
+                    onChange={(e) => setNewEvent((prev) => ({ ...prev, client_name: e.target.value }))}
+                    placeholder="Prénoms"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date Cérémonie</Label>
+                  <Input
+                    type="date"
+                    className="bg-black/20 border-white/10 h-12 rounded-xl focus:border-gold/50"
+                    value={newEvent.event_date ?? ""}
+                    onChange={(e) => setNewEvent((prev) => ({ ...prev, event_date: e.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-4 flex justify-end pt-4">
+                  <Button
+                    type="submit"
+                    className="btn-gold px-10 h-12 rounded-full uppercase tracking-[0.2em] text-[10px] font-black"
+                    disabled={isCreatingEvent}
+                  >
+                    {isCreatingEvent ? "Création..." : "Initialiser l'évènement"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Liste des événements */}
-        <Card className="shadow-elegant border-gold/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-elegant-black">
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Settings2 className="h-5 w-5 text-gold" />
-              Vos événements
-              <Badge variant="outline" className="ml-2">
-                {events.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingEvents ? (
-              <div className="text-center text-muted-foreground py-8">
-                Chargement de vos événements...
-              </div>
-            ) : events.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                Aucun événement pour le moment. Créez votre premier événement ci-dessus.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {events.map((event) => {
-                  const baseUrl = window.location.origin;
-                  const guestUrl = `${baseUrl}/${event.slug}`;
-                  const adminUrl = `${baseUrl}/${event.slug}/admin`;
-                  const qrUrl = `${baseUrl}/${event.slug}/qr-codes`;
+              <h2 className="text-lg font-bold tracking-widest uppercase">Mes Projets</h2>
+              <Badge className="bg-gold/10 text-gold border-gold/20 ml-4 px-3">{events.length}</Badge>
+            </div>
+          </div>
 
-                  return (
-                    <div
-                      key={event.id}
-                      className="p-4 border border-gold/20 rounded-lg bg-card/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-elegant-black">
-                            {event.name}
-                          </span>
-                          <Badge variant={event.status === "published" ? "default" : "outline"}>
-                            {event.status || "draft"}
+          {isLoadingEvents ? (
+            <div className="py-20 text-center opacity-30">Chargement de la collection...</div>
+          ) : events.length === 0 ? (
+            <Card className="bg-white/[0.01] border-dashed border-white/10 py-20 text-center">
+              <p className="text-muted-foreground italic">Aucun univers créé pour le moment.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {events.map((event) => {
+                const baseUrl = window.location.origin;
+                const guestUrl = `${baseUrl}/${event.slug}`;
+
+                return (
+                  <Card
+                    key={event.id}
+                    className="group bg-white/[0.03] border-white/5 hover:border-gold/30 hover:bg-white/[0.05] transition-all duration-500 rounded-2xl overflow-hidden"
+                  >
+                    <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-bold text-white tracking-wide">{event.name}</h3>
+                          <Badge className={event.status === "published" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-muted-foreground"}>
+                            {event.status === "published" ? "Actif" : "Brouillon"}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          {event.client_name && (
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {event.client_name}
-                            </span>
-                          )}
-                          {event.event_date && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {event.event_date}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <LinkIcon className="h-3 w-3" />
-                            {event.slug}
-                          </span>
+                        <div className="flex flex-wrap gap-6 text-[11px] text-muted-foreground uppercase tracking-widest">
+                          <span className="flex items-center gap-2"><Users className="h-3 w-3 text-gold" /> {event.client_name || "N/A"}</span>
+                          <span className="flex items-center gap-2"><Calendar className="h-3 w-3 text-gold" /> {event.event_date || "Date non fixée"}</span>
+                          <span className="flex items-center gap-2"><LinkIcon className="h-3 w-3 text-gold" /> /{event.slug}</span>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+                      <div className="flex flex-wrap gap-3">
                         <Button
                           variant="outline"
                           size="sm"
+                          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-[10px] uppercase tracking-widest"
                           onClick={() => {
                             navigator.clipboard.writeText(guestUrl);
-                            toast({
-                              title: "Lien copié",
-                              description: "Lien invité copié dans le presse-papiers.",
-                            });
+                            toast({ title: "Lien copié" });
                           }}
                         >
-                          <LinkIcon className="h-4 w-4 mr-1" />
-                          Lien invités
+                          Lien Invité
                         </Button>
                         <Button
-                          variant="elegant"
+                          className="rounded-xl bg-white text-black hover:bg-gold hover:text-white transition-all text-[10px] uppercase tracking-widest font-bold"
                           size="sm"
                           onClick={() => navigate(`/${event.slug}/admin`)}
                         >
-                          <Users className="h-4 w-4 mr-1" />
-                          Voir les vœux
+                          Gérer vœux <ChevronRight className="ml-1 h-3 w-3" />
                         </Button>
                         <Button
-                          variant="wedding"
+                          variant="secondary"
+                          className="rounded-xl bg-gold/10 text-gold hover:bg-gold hover:text-white border border-gold/20 transition-all text-[10px] uppercase tracking-widest font-bold"
                           size="sm"
                           onClick={() => navigate(`/${event.slug}/qr-codes`)}
                         >
-                          <QrCode className="h-4 w-4 mr-1" />
-                          QR Codes
+                          <QrCode className="mr-2 h-4 w-4" /> QR Codes
                         </Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
-        <div className="text-center text-xs text-muted-foreground">
-          Partagez le lien invité de chaque événement ou imprimez les QR codes pour les tables.
-        </div>
+        {/* Footer info */}
+        <footer className="pt-20 pb-10 text-center opacity-30">
+           <div className="flex justify-center items-center gap-4 mb-4">
+              <div className="h-px w-8 bg-gold/50" />
+              <Sparkles className="h-3 w-3 text-gold" />
+              <div className="h-px w-8 bg-gold/50" />
+           </div>
+           <p className="text-[9px] uppercase tracking-[0.6em] text-muted-foreground font-serif">
+             Féerie Snap Event • Orchestrateur de Souvenirs
+           </p>
+        </footer>
       </div>
     </div>
   );
 };
 
 export default AdminDashboard;
-

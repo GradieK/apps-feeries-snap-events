@@ -1,21 +1,20 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {useParams} from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Users, Camera, Mic, MessageSquare, ArrowRight } from "lucide-react";
+import { Camera, Mic, MessageSquare, ArrowRight, Sparkles, Stars } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import weddingHero from "@/assets/wedding-hero.jpg";
+// Importation du nouveau logo or sur fond noir
+import feerieLogo from "/logo.png"; 
 
 const Home = () => {
-  const {slug} = useParams()
+  const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
-  const [table, setTable] = useState("");
+  const [table, setTable] = useState<string | null>(null);;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,67 +38,62 @@ const Home = () => {
       return;
     }
 
-    if (!table) {
+    {/*if (!table) {
       toast({
         title: "Table requise",
         description: "Veuillez sélectionner votre numéro de table",
         variant: "destructive",
       });
       return;
-    }
+    }*/}
 
-    // Sauvegarder le prénom
     localStorage.setItem("wedding-guest-name", name.trim());
-    
     // Rediriger vers la page de vœux avec paramètres
     navigate(`/${slug}/voeux?t=${table}&n=${encodeURIComponent(name.trim())}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-elegant">
-      {/* Hero Section */}
-      <div className="relative">
-        <div 
-          className="h-64 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${weddingHero})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-hero" />
+    <div className="min-h-screen bg-background">
+      {/* Hero Section Premium */}
+      <div className="relative h-[40vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-black z-0">
+           {/* Texture de fond subtile */}
+           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--primary)_0%,_transparent_70%)]" />
         </div>
         
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-elegant-black">
-            <Heart className="mx-auto mb-4 h-12 w-12 text-gold animate-pulse fill-gold" />
-            <h1 className="text-4xl md:text-6xl font-bold text-elegant-black mb-4">
-              Vœux d'Or
-              <span className="ml-2 text-gold animate-pulse">✨</span>
-            </h1>
-            <p className="text-lg md:text-xl text-elegant-gray mb-8">
-              Laissez un souvenir inoubliable aux mariés
-            </p>
-          </div>
+        <div className="relative z-10 text-center px-4">
+          <img 
+            src={feerieLogo} 
+            alt="Féerie Snap Event" 
+            className="mx-auto mb-6 h-24 md:h-32 logo-feerie"
+          />
+          <h1 className="text-4xl md:text-6xl font-bold mb-2 tracking-tight">
+            <span className="text-gold">Féerie Snap Event</span>
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto">
+            Immortalisez l'événement. Partagez vos plus beaux souvenirs.
+          </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 max-w-md -mt-20 relative z-10">
-        <Card className="w-full max-w-md shadow-elegant border-gold/20 bg-card/95 backdrop-blur">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-elegant-black mb-2 flex items-center justify-center gap-2">
-              <Heart className="h-6 w-6 text-gold fill-gold" />
-              Bienvenue
-              <span className="ml-1 text-gold">💕</span>
+      <div className="container mx-auto px-4 py-12 max-w-md -mt-12 relative z-20">
+        <Card className="card-premium backdrop-blur-md bg-card/80 border-primary/20">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl mb-2 flex items-center justify-center gap-2">
+              <Stars className="h-6 w-6 text-primary" />
+              <span className="text-gold">Bienvenue</span>
+              <Sparkles className="h-6 w-6 text-primary" />
             </CardTitle>
-            <p className="text-elegant-gray">
-              Partager votre amour et vos vœux
+            <p className="text-muted-foreground text-sm">
+              Identifiez-vous pour commencer à partager
             </p>
           </CardHeader>
           
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-elegant-black font-medium">
-                <span className="inline-flex items-center gap-2">
-                  Votre prénom <span className="text-gold text-sm">✨</span>
-                </span>
+          <CardContent className="space-y-6 pt-4">
+            <div className="space-y-2 text-left">
+              <Label htmlFor="name" className="text-foreground font-medium flex items-center gap-2">
+                Votre prénom <Sparkles className="h-4 w-4 text-primary" />
               </Label>
               <Input
                 id="name"
@@ -107,66 +101,73 @@ const Home = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Dites-nous qui vous êtes..."
-                className="border-gold/30 focus:border-gold bg-card text-elegant-black"
+                className="bg-black/40 border-border focus:border-primary text-foreground"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="table" className="text-elegant-black font-medium">
-                <span className="inline-flex items-center gap-2">
-                  Votre numéro de table <span className="text-gold">🪑</span>
-                </span>
+            {/*<div className="space-y-2 text-left">
+              <Label htmlFor="table" className="text-foreground font-medium flex items-center gap-2">
+                Votre emplacement <span className="text-primary">📍</span>
               </Label>
               <Select value={table} onValueChange={setTable} required>
-                <SelectTrigger className="border-gold/30 focus:border-gold bg-card text-elegant-black">
-                  <SelectValue placeholder="À quelle table êtes-vous assis(e) ?" />
+                <SelectTrigger className="bg-black/40 border-border focus:border-primary text-foreground">
+                  <SelectValue placeholder="À quelle table êtes-vous ?" />
                 </SelectTrigger>
-                <SelectContent>
-                  {[...Array(26)].map((_, i) => (
+                <SelectContent className="bg-card border-border">
+                  {[...Array(30)].map((_, i) => (
                     <SelectItem key={i + 1} value={(i + 1).toString()}>
                       Table {i + 1}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div>*/}
 
-            <Button 
+            <button 
               onClick={handleContinue}
-              variant="wedding" 
-              size="lg" 
-              className="w-full"
-              disabled={!name || !table}
+              className="btn-gold w-full flex items-center justify-center gap-2 mt-4"
+              disabled={!name}
             >
-              <ArrowRight className="mr-2 h-5 w-5" />
-              Commencer l'aventure
-              <span className="ml-2 text-sm">🎉</span>
-            </Button>
+              <ArrowRight className="h-5 w-5" />
+              Partager mes souvenirs
+            </button>
 
             {/* Features Preview */}
-            <div className="mt-8 pt-6 border-t border-gold/20">
-              <p className="text-center text-sm text-muted-foreground mb-4">
-                Vous pourrez partager :
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <p className="text-center text-xs text-muted-foreground mb-6 uppercase tracking-widest">
+                Options de partage disponibles
               </p>
-              <div className="flex justify-center gap-8">
-                <div className="text-center">
-                  <Mic className="mx-auto h-8 w-8 text-gold mb-2" />
-                  <span className="text-xs text-muted-foreground">Audio</span>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-3 rounded-full bg-white/5 border border-white/10">
+                    <Mic className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground uppercase">Audio</span>
                 </div>
-                <div className="text-center">
-                  <MessageSquare className="mx-auto h-8 w-8 text-gold mb-2" />
-                  <span className="text-xs text-muted-foreground">Texte</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-3 rounded-full bg-white/5 border border-white/10">
+                    <MessageSquare className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground uppercase">Récit</span>
                 </div>
-                <div className="text-center">
-                  <Camera className="mx-auto h-8 w-8 text-gold mb-2" />
-                  <span className="text-xs text-muted-foreground">Photo/Vidéo</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-3 rounded-full bg-white/5 border border-white/10">
+                    <Camera className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground uppercase">Visuel</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      <footer className="mt-12 pb-8 text-center">
+        <p className="text-xs text-muted-foreground/50 italic font-serif">
+          Une expérience signée Féerie Event
+        </p>
+      </footer>
     </div>
   );
 };

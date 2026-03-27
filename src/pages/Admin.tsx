@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  LogIn, 
   Download, 
   Filter, 
   Users, 
@@ -18,20 +16,23 @@ import {
   Calendar,
   Table as TableIcon,
   Heart,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  Sparkles,
+  PlayCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEvent } from "@/hooks/useEvent";
 import { useAuth } from "@/hooks/useAuth";
+import { GenerationPanel } from "@/components/GenerationPanel";
 
-// Types pour les vœux
 type WishType = "text" | "audio" | "image" | "video";
 
 interface Wish {
   id: string;
   guest_name: string;
-  table_number: number;
+  table_number: number | null;
   type: WishType;
   content?: string | null;
   file_url?: string | null;
@@ -42,7 +43,8 @@ interface Wish {
 }
 
 const Admin = () => {
-  const [selectedTable, setSelectedTable] = useState<string>("all");
+  // Remplacez selectedTable par ceci
+  const [selectedType, setSelectedType] = useState<string>("all");
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -50,7 +52,6 @@ const Admin = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { event, isLoading: isEventLoading, error: eventError } = useEvent();
 
-  // Charger les vœux depuis Supabase avec sécurité renforcée
   const loadWishes = async () => {
     if (!event?.id || !user) return;
     setIsLoading(true);
@@ -58,11 +59,10 @@ const Admin = () => {
       const { data, error } = await supabase
       .from("wishes")
       .select("*")
-      .eq("event_id", event.id);
+      .eq("event_id", event.id)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setWishes((data || []).map(wish => ({
         ...wish,
@@ -71,8 +71,8 @@ const Admin = () => {
     } catch (error) {
       console.error('Error loading wishes:', error);
       toast({
-        title: "Erreur de chargement",
-        description: "Impossible de charger les vœux",
+        title: "Erreur",
+        description: "Impossible de charger les souvenirs",
         variant: "destructive",
       });
     } finally {
@@ -82,14 +82,9 @@ const Admin = () => {
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour accéder aux vœux.",
-        variant: "destructive",
-      });
       navigate("/dashboard");
     }
-  }, [isAuthLoading, user, navigate, toast]);
+  }, [isAuthLoading, user, navigate]);
 
   useEffect(() => {
     if (!isAuthLoading && user && !isEventLoading && event && !eventError) {
@@ -97,27 +92,13 @@ const Admin = () => {
     }
   }, [isAuthLoading, user, isEventLoading, event, eventError]);
 
-  useEffect(() => {
-    if (!isEventLoading && (eventError || !event)) {
-      toast({
-        title: "Événement introuvable",
-        description: "Impossible de charger l'événement pour l'administration.",
-        variant: "destructive",
-      });
-    }
-  }, [event, eventError, isEventLoading, toast]);
-
   const handleExportZip = async () => {
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       
-      toast({
-        title: "Préparation de l'export...",
-        description: "Téléchargement des fichiers en cours",
-      });
+      toast({ title: "Préparation de l'archive...", description: "Traitement des souvenirs en cours" });
 
-      // Ajouter les messages texte
       const textWishes = wishes.filter(wish => wish.type === "text");
       if (textWishes.length > 0) {
         const textContent = textWishes.map(wish => 
@@ -128,9 +109,7 @@ const Admin = () => {
         zip.file("messages-texte.txt", textContent);
       }
 
-      // Ajouter les fichiers audio et média
       const fileWishes = wishes.filter(wish => wish.file_url && (wish.type === "audio" || wish.type === "image" || wish.type === "video"));
-      
       for (const wish of fileWishes) {
         if (wish.file_url) {
           try {
@@ -138,37 +117,24 @@ const Admin = () => {
             if (response.ok) {
               const blob = await response.blob();
               const extension = wish.filename?.split('.').pop() || (wish.type === 'audio' ? 'webm' : wish.type === 'image' ? 'jpg' : 'mp4');
-              const fileName = `${wish.type}s/${wish.guest_name}_table${wish.table_number}_${new Date(wish.created_at).toISOString().split('T')[0]}.${extension}`;
+              const fileName = `${wish.type}s/${wish.guest_name}_table${wish.table_number}_${new Date(wish.created_at).getTime()}.${extension}`;
               zip.file(fileName, blob);
             }
-          } catch (error) {
-            console.error(`Erreur téléchargement ${wish.filename}:`, error);
-          }
+          } catch (e) { console.error(e); }
         }
       }
 
-      // Générer et télécharger le ZIP
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `voeux-mariage-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
+      link.download = `souvenirs-feerie-${event?.slug}-${new Date().toISOString().split('T')[0]}.zip`;
       link.click();
-      document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast({
-        title: "Export terminé 📦",
-        description: `${wishes.length} vœux exportés avec succès`,
-      });
+      toast({ title: "Export terminé 📦", description: `${wishes.length} souvenirs sauvegardés` });
     } catch (error) {
-      console.error('Erreur export ZIP:', error);
-      toast({
-        title: "Erreur d'export",
-        description: "Impossible de créer l'archive ZIP",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur d'export", variant: "destructive" });
     }
   };
 
@@ -176,50 +142,30 @@ const Admin = () => {
     const textWishes = wishes.filter(wish => wish.type === "text");
     const csvContent = [
       ["Nom", "Table", "Message", "Date"],
-      ...textWishes.map(wish => [
-        wish.guest_name,
-        wish.table_number.toString(),
-        wish.content || "",
-        new Date(wish.created_at).toLocaleString("fr-FR")
-      ])
+      ...textWishes.map(wish => [wish.guest_name, wish.table_number.toString(), wish.content || "", new Date(wish.created_at).toLocaleString("fr-FR")])
     ].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "vœux_texte_mariage.csv");
+    link.href = url;
+    link.download = "messages_texte.csv";
     link.click();
-    
-    toast({
-      title: "Export CSV terminé 📊",
-      description: "Les messages texte ont été téléchargés",
-    });
   };
 
   const getTypeIcon = (type: WishType) => {
     switch (type) {
-      case "text": return <MessageSquare className="h-4 w-4" />;
-      case "audio": return <Mic className="h-4 w-4" />;
-      case "image": return <Camera className="h-4 w-4" />;
-      case "video": return <Camera className="h-4 w-4" />;
-      default: return <MessageSquare className="h-4 w-4" />;
+      case "text": return <MessageSquare className="h-3.5 w-3.5" />;
+      case "audio": return <Mic className="h-3.5 w-3.5" />;
+      case "image": return <Camera className="h-3.5 w-3.5" />;
+      case "video": return <PlayCircle className="h-3.5 w-3.5" />;
+      default: return <MessageSquare className="h-3.5 w-3.5" />;
     }
   };
 
-  const getTypeBadgeVariant = (type: WishType) => {
-    switch (type) {
-      case "text": return "default";
-      case "audio": return "secondary";
-      case "image": return "outline";
-      case "video": return "destructive";
-      default: return "default";
-    }
-  };
-
-  const filteredWishes = selectedTable === "all" 
-    ? wishes 
-    : wishes.filter(wish => wish.table_number.toString() === selectedTable);
+  const filteredWishes = selectedType === "all" 
+  ? wishes 
+  : wishes.filter(wish => wish.type === selectedType);
 
   const stats = {
     total: wishes.length,
@@ -230,239 +176,181 @@ const Admin = () => {
 
   if (isAuthLoading || isEventLoading || !event) {
     return (
-      <div className="min-h-screen bg-gradient-elegant flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-elegant border-gold/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-elegant-black flex items-center justify-center gap-2">
-              <Heart className="h-6 w-6 text-gold fill-gold" />
-              Chargement des vœux...
-            </CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Sparkles className="h-8 w-8 text-gold animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-elegant">
-      {/* Header */}
-      <div className="bg-card border-b border-gold/20 shadow-soft">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Heart className="h-6 w-6 text-gold fill-gold" />
-              <h1 className="text-2xl font-bold text-elegant-black">
-                Panneau d'Administration
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={loadWishes}
-                variant="outline"
-                size="sm"
-                disabled={isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {isLoading ? 'Actualisation...' : 'Actualiser'}
-              </Button>
+    <div className="min-h-screen bg-[#050505] text-slate-200 pb-20">
+      {/* Header Premium */}
+      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/dashboard")}
+              className="text-muted-foreground hover:text-white"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="h-8 w-px bg-white/10 mx-2" />
+            <div>
+              <h1 className="text-sm font-bold tracking-[0.2em] uppercase text-white">Gestion des Souvenirs</h1>
+              <p className="text-[10px] text-gold uppercase tracking-widest">{event.name}</p>
             </div>
           </div>
+          <Button
+            onClick={loadWishes}
+            variant="outline"
+            size="sm"
+            className="rounded-full border-white/10 bg-white/5 text-[10px] uppercase tracking-widest h-9"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
         </div>
-      </div>
+      </nav>
 
-        <div className="container mx-auto px-4 py-6 max-w-6xl">
-          <div className="text-center mb-6">
-            <p className="text-elegant-gray">
-              Retrouvez ici tous les vœux laissés par vos invités
-              <span className="ml-2 text-gold">💕</span>
-            </p>
+      <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+        
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Total", val: stats.total, icon: Users },
+            { label: "Textes", val: stats.text, icon: MessageSquare },
+            { label: "Audios", val: stats.audio, icon: Mic },
+            { label: "Médias", val: stats.media, icon: Camera },
+          ].map((item, i) => (
+            <Card key={i} className="bg-white/[0.02] border-white/5 backdrop-blur-sm">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{item.label}</p>
+                  <p className="text-2xl font-black text-white">{item.val}</p>
+                </div>
+                <item.icon className="h-5 w-5 text-gold opacity-50" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {event?.id && <GenerationPanel eventId={event.id} />}
+
+        {/* Filters & Actions */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+          <div className="flex items-center gap-3 px-3 py-2 bg-black/40 rounded-xl border border-white/5">
+            <Filter className="h-4 w-4 text-gold" />
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-[180px] border-none bg-transparent h-8 text-xs focus:ring-0">
+                <SelectValue placeholder="Type de souvenir" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0f0f0f] border-white/10 text-slate-300">
+                <SelectItem value="all">Tous les souvenirs</SelectItem>
+                <SelectItem value="text">Messages écrits</SelectItem>
+                <SelectItem value="image">Photos</SelectItem>
+                <SelectItem value="video">Vidéos</SelectItem>
+                <SelectItem value="audio">Messages vocaux</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="shadow-soft border-gold/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total vœux</p>
-                  <p className="text-2xl font-bold text-elegant-black">{stats.total}</p>
-                </div>
-                <Users className="h-8 w-8 text-gold" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-soft border-gold/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Messages texte</p>
-                  <p className="text-2xl font-bold text-elegant-black">{stats.text}</p>
-                </div>
-                <MessageSquare className="h-8 w-8 text-gold" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-soft border-gold/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Messages audio</p>
-                  <p className="text-2xl font-bold text-elegant-black">{stats.audio}</p>
-                </div>
-                <Mic className="h-8 w-8 text-gold" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-soft border-gold/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Photos/Vidéos</p>
-                  <p className="text-2xl font-bold text-elegant-black">{stats.media}</p>
-                </div>
-                <Camera className="h-8 w-8 text-gold" />
-              </div>
-            </CardContent>
-          </Card>
+  
+          <div className="flex gap-3">
+            <Button onClick={handleExportCSV} variant="outline" className="rounded-xl border-white/10 text-[10px] font-bold">CSV</Button>
+            <Button onClick={handleExportZip} className="btn-gold rounded-xl text-[10px] font-bold tracking-widest uppercase">Archive ZIP</Button>
+          </div>
         </div>
 
-        {/* Controls */}
-        <Card className="mb-6 shadow-soft border-gold/20">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Label>Filtrer par table :</Label>
-                </div>
-                <Select value={selectedTable} onValueChange={setSelectedTable}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes les tables</SelectItem>
-                    {[...Array(15)].map((_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        Table {i + 1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button onClick={handleExportCSV} variant="elegant" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV Messages
-                </Button>
-                <Button onClick={handleExportZip} variant="wedding" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export ZIP Complet
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Wishes Feed */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Eye className="h-4 w-4 text-gold" />
+            <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-white">Flux des vœux ({filteredWishes.length})</h2>
+            <div className="h-px flex-1 bg-white/5" />
+          </div>
 
-        {/* Wishes List */}
-        <Card className="shadow-elegant border-gold/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-gold" />
-              Vœux d'Amour de vos Invités ({filteredWishes.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold mx-auto mb-4"></div>
-                  <p className="text-elegant-gray">Chargement des vœux...</p>
-                </div>
-              ) : (
-                filteredWishes.map((wish) => (
-                  <div 
-                    key={wish.id}
-                    className="p-4 border border-gold/20 rounded-lg bg-gradient-hero hover:shadow-soft transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <Badge variant={getTypeBadgeVariant(wish.type)} className="flex items-center gap-1">
-                          {getTypeIcon(wish.type)}
-                          {wish.type}
-                        </Badge>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <TableIcon className="h-4 w-4" />
-                          Table {wish.table_number}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(wish.created_at).toLocaleString("fr-FR")}
-                        </div>
-                      </div>
-                      <div className="font-semibold text-elegant-black">{wish.guest_name}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoading ? (
+              <div className="col-span-full py-20 text-center opacity-30 tracking-widest uppercase text-xs">Synchronisation...</div>
+            ) : filteredWishes.length === 0 ? (
+              <div className="col-span-full py-20 text-center bg-white/[0.01] border border-dashed border-white/10 rounded-3xl">
+                <Heart className="mx-auto h-8 w-8 mb-4 opacity-20 text-gold" />
+                <p className="text-muted-foreground text-sm italic">Aucun souvenir capturé ici pour le moment.</p>
+              </div>
+            ) : (
+              filteredWishes.map((wish) => (
+                <Card 
+                  key={wish.id}
+                  className="group bg-white/[0.03] border-white/5 hover:border-gold/30 transition-all duration-500 rounded-2xl overflow-hidden flex flex-col"
+                >
+                  <CardHeader className="p-4 pb-2 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-gold/10 text-gold border-gold/20 text-[9px] uppercase tracking-tighter flex items-center gap-1.5 py-1">
+                        {getTypeIcon(wish.type)}
+                        {wish.type}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground font-mono opacity-50">
+                        #{wish.id.slice(0,5)}
+                      </span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-white text-base truncate">{wish.guest_name}</h3>
+                      {/*<div className="flex items-center gap-1.5 text-gold bg-gold/5 px-2 py-1 rounded-lg border border-gold/10">
+                        <TableIcon className="h-3 w-3" />
+                        <span className="text-[10px] font-black">T-{wish.table_number}</span>
+                      </div>*/}
+                    </div>
+                  </CardHeader>
                   
-                    <div className="mt-3">
-                      {wish.type === "text" && wish.content && (
-                        <div className="bg-secondary/30 p-3 rounded border-l-4 border-gold">
-                          <p className="text-sm">{wish.content}</p>
-                        </div>
+                  <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="relative">
+                      {wish.type === "text" && (
+                        <p className="text-sm text-slate-400 leading-relaxed italic">"{wish.content}"</p>
                       )}
                       
                       {wish.type === "audio" && wish.file_url && (
-                        <div className="bg-secondary/30 p-3 rounded">
-                          <audio controls className="w-full">
+                        <div className="bg-black/40 p-2 rounded-xl border border-white/5">
+                          <audio controls className="w-full h-8 opacity-70">
                             <source src={wish.file_url} type={wish.mime_type || "audio/webm"} />
-                            Votre navigateur ne supporte pas l'élément audio.
                           </audio>
-                          <p className="text-xs text-muted-foreground mt-1">{wish.filename}</p>
                         </div>
                       )}
                       
                       {wish.type === "image" && wish.file_url && (
-                        <div className="bg-secondary/30 p-3 rounded">
+                        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20">
                           <img 
                             src={wish.file_url} 
-                            alt={`Photo de ${wish.guest_name}`}
-                            className="max-w-xs max-h-40 rounded object-cover"
+                            alt={wish.guest_name}
+                            className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-700"
                           />
-                          <p className="text-xs text-muted-foreground mt-1">{wish.filename}</p>
                         </div>
                       )}
                       
                       {wish.type === "video" && wish.file_url && (
-                        <div className="bg-secondary/30 p-3 rounded">
-                          <video 
-                            controls 
-                            className="max-w-xs max-h-40 rounded"
-                          >
+                        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 relative">
+                          <video className="w-full aspect-video object-cover" preload="metadata" controls>
                             <source src={wish.file_url} type={wish.mime_type || "video/mp4"} />
-                            Votre navigateur ne supporte pas l'élément vidéo.
                           </video>
-                          <p className="text-xs text-muted-foreground mt-1">{wish.filename}</p>
+                          {/*<div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-all">
+                             <PlayCircle className="h-10 w-10 text-white opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                          </div>*/}
                         </div>
                       )}
                     </div>
-                  </div>
-                ))
-              )}
-              
-              {!isLoading && filteredWishes.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Heart className="mx-auto h-12 w-12 mb-4 opacity-50 text-gold" />
-                  <p>Aucun vœu trouvé pour cette sélection.</p>
-                  <p className="text-sm mt-2">
-                    Les vœux de vos invités apparaîtront ici
-                    <span className="ml-1 text-gold">✨</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/5 text-[9px] text-muted-foreground uppercase tracking-widest">
+                      <Calendar className="h-3 w-3 text-gold/50" />
+                      {new Date(wish.created_at).toLocaleDateString("fr-FR")} à {new Date(wish.created_at).toLocaleTimeString("fr-FR", { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

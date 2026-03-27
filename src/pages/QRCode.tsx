@@ -1,125 +1,122 @@
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { QrCode, Printer, Download } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Printer, ChevronLeft, Sparkles, Download } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
+import html2canvas from "html2canvas";
 
 const QRCodePage = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const printRef = useRef<HTMLDivElement>(null);
+
   const handlePrint = () => {
     window.print();
   };
 
-  const tables = Array.from({ length: 26 }, (_, i) => i + 1);
+  const handleDownload = async () => {
+    if (printRef.current) {
+      const canvas = await html2canvas(printRef.current, {
+        scale: 3,
+        backgroundColor: "#ffffff",
+        useCORS: true, // Aide à charger les polices/images externes
+      });
+      const link = document.createElement("a");
+      link.download = `QR-Féerie-${slug}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+  };
+
   const baseUrl = window.location.origin;
-  const qrCodeUrl = slug ? `${baseUrl}/${slug}` : `${baseUrl}/`;
+  const qrCodeUrl = slug ? `${baseUrl}/${slug}` : baseUrl;
 
   return (
-    <div className="min-h-screen bg-gradient-elegant">
-      {/* Header - masqué lors de l'impression */}
-      <div className="print:hidden bg-card border-b border-gold/20 shadow-soft">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-elegant-black flex items-center gap-2">
-              <QrCode className="h-6 w-6 text-gold" />
-              QR Codes pour les Tables
-            </h1>
-            <div className="flex items-center gap-4">
-              <Button onClick={handlePrint} variant="wedding" size="sm">
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimer
-              </Button>
-              <Button 
-                onClick={() => window.location.href = slug ? `/${slug}/admin` : "/"} 
-                variant="elegant" 
-                size="sm"
-              >
-                Administration
-              </Button>
-            </div>
+    <div className="min-h-screen bg-[#050505] text-white font-sans">
+      {/* Barre d'outils */}
+      <div className="print:hidden border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Button variant="ghost" onClick={() => navigate(`/${slug}/admin`)} className="text-slate-400">
+            <ChevronLeft className="mr-2 h-4 w-4" /> Retour
+          </Button>
+          
+          <div className="flex gap-3">
+            <Button onClick={handleDownload} variant="outline" className="border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10">
+              <Download className="mr-2 h-4 w-4" /> Télécharger (PNG HD)
+            </Button>
+            <Button onClick={handlePrint} className="bg-[#D4AF37] text-black font-bold hover:bg-[#C5A028]">
+              <Printer className="mr-2 h-4 w-4" /> Imprimer
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Instructions - masquées lors de l'impression */}
-      <div className="print:hidden container mx-auto px-4 py-4">
-        <Card className="shadow-soft border-gold/20 mb-6">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-muted-foreground">
-                Imprimez cette page pour obtenir les chevalets QR Code pour chaque table.
-                Chaque QR Code redirige vers <strong>{qrCodeUrl}</strong>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Zone de capture et d'impression */}
+      <div className="container mx-auto px-4 py-12 flex justify-center">
+        <div 
+          ref={printRef}
+          className="max-w-xl w-full bg-white text-black p-12 rounded-[2.5rem] text-center flex flex-col items-center border-[8px] border-[#D4AF37]/10 print:border-none shadow-2xl"
+        >
+          {/* Logo corrigé - Utilisation d'un conteneur discret */}
+          <div className="mb-10">
+             <div className="bg-black p-3 rounded-xl inline-block">
+                <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
+             </div>
+          </div>
 
-      {/* QR Codes Grid - optimisé pour l'impression */}
-      <div className="container mx-auto px-4 pb-8 print:p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-2 print:gap-4">
-          {tables.map((tableNumber) => (
-            <div
-              key={tableNumber}
-              className="break-inside-avoid"
-            >
-              <Card className="shadow-elegant border-gold/20 print:shadow-none print:border-2 print:border-gold print:break-inside-avoid">
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-xl text-elegant-black print:text-2xl">
-                    Table {tableNumber.toString().padStart(2, '0')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center space-y-4">
-                  {/* QR Code Placeholder */}
-                  <div className="mx-auto w-48 h-48 border-2 border-gold/30 rounded-lg flex items-center justify-center bg-cream">
-                    <QRCode value={`${qrCodeUrl}?t=${tableNumber}`} size={176} />
-                  </div>
-                  
-                  {/* URL lisible */}
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-elegant-black mb-1">
-                      Livre d'Or Digital
-                    </p>
-                    <p className="text-xs text-muted-foreground break-all">
-                      {`${qrCodeUrl}?t=${tableNumber}`}
-                    </p>
-                  </div>
-                  
-                  {/* Instructions */}
-                  <div className="text-center text-xs text-muted-foreground leading-relaxed">
-                    <p>Scannez pour partager</p>
-                    <p>vos vœux de bonheur</p>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Titre avec dégradé Or CSS pour éviter le fond noir des images */}
+          <h2 className="text-5xl font-serif font-bold mb-4 leading-tight">
+            Immortalisez <br /> 
+            <span className="gold-text italic">l'instant</span>
+          </h2>
+          
+          <p className="text-slate-500 mb-10 uppercase tracking-[0.4em] text-[10px] font-black">
+            Scannez pour partager vos souvenirs
+          </p>
+
+          {/* QR CODE */}
+          <div className="p-10 border-[1px] border-slate-100 rounded-[3rem] bg-white mb-10 shadow-sm">
+            <QRCode value={qrCodeUrl} size={220} level="H" />
+          </div>
+
+          <div className="space-y-6 w-full flex flex-col items-center">
+            {/* Badge SCAN MOI en pur CSS */}
+            <div className="gold-gradient-bg px-8 py-2 rounded-full flex items-center gap-3 shadow-md">
+              <Sparkles className="h-4 w-4 text-black/70" />
+              <span className="text-sm font-black uppercase tracking-[0.2em] text-black italic">
+                SCAN MOI
+              </span>
+              <Sparkles className="h-4 w-4 text-black/70" />
             </div>
-          ))}
+
+            <p className="text-[11px] text-slate-400 font-medium tracking-wide">
+              Feerie Snap Event • {slug?.replace(/-/g, ' ')}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Footer - masqué lors de l'impression */}
-      <div className="print:hidden text-center py-8 text-sm text-muted-foreground">
-        <p>💡 Conseil : Imprimez sur du papier cartonné pour de meilleurs chevalets</p>
-      </div>
-
-      {/* Styles d'impression */}
       <style>
         {`
+        /* Effet de texte doré métallique */
+        .gold-text {
+          background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          display: inline-block;
+        }
+
+        /* Fond doré métallique pour les badges */
+        .gold-gradient-bg {
+          background: linear-gradient(135deg, #BF953F 0%, #FCF6BA 45%, #B38728 100%);
+        }
+
         @media print {
-          @page {
-            size: A4;
-            margin: 1cm;
-          }
-          
-          body {
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          .break-inside-avoid {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
+          @page { size: A4; margin: 0; }
+          body { background: white !important; }
+          .min-h-screen { background: white !important; color: black !important; }
+          .gold-text { -webkit-print-color-adjust: exact; }
+          .gold-gradient-bg { -webkit-print-color-adjust: exact; }
         }
         `}
       </style>

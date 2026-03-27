@@ -15,6 +15,9 @@ import {
   ArrowLeft,
   Camera,
   MessageSquare,
+  Sparkles,
+  Stars,
+  Music,
   Play,
   Pause,
   Volume2,
@@ -23,6 +26,7 @@ import {
 import { useEvent } from "@/hooks/useEvent"
 import { useToast } from '@/hooks/use-toast';
 import { useWishUpload } from '@/hooks/useWishUpload';
+import imageCompression from 'browser-image-compression';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 const Voeux = () => {
@@ -50,6 +54,21 @@ const Voeux = () => {
   // File upload states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // 2. Ajoute cette petite fonction utilitaire à l'intérieur de ton composant
+  const compressImage = async (file: File) => {
+    const options = {
+      maxSizeMB: 1,           // Taille cible de 1Mo
+      maxWidthOrHeight: 1920, // Redimensionne en Full HD max
+      useWebWorker: true,
+      initialQuality: 0.8
+    };
+    try {
+      return await imageCompression(file, options);
+    } catch (error) {
+      console.error("Erreur compression:", error);
+      return file; // Si ça échoue, on garde l'original
+    }
+  };
 
   useEffect(() => {
     if (!name || !table) {
@@ -118,13 +137,23 @@ const Voeux = () => {
   const handleSendFile = async () => {
     if (!event?.id || !selectedFile || !name || !table) return;
     
-    const fileType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
+    const isImage = selectedFile.type.startsWith('image/');
+    const fileType = isImage ? 'image' : 'video';
+    
+    let fileToUpload = selectedFile;
+
+    // --- LOGIQUE DE COMPRESSION ---
+    if (isImage) {
+      // On compresse uniquement si c'est une image
+      fileToUpload = await compressImage(selectedFile);
+    }
+    // ------------------------------
     
     const success = await uploadWish({
       name,
       tableNumber: parseInt(table),
       type: fileType,
-      file: selectedFile
+      file: fileToUpload
     });
     
     if (success) {
@@ -153,256 +182,188 @@ const Voeux = () => {
   if (!name || !table) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-elegant">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="bg-card border-b border-gold/20 shadow-soft">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <nav className="border-b border-white/5 bg-black/50 backdrop-blur-lg sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="text-muted-foreground hover:text-elegant-black"
+              className="text-muted-foreground transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
-            
-            <div className="text-center">
-              <h1 className="text-lg font-semibold text-elegant-black">
-                Table {table} • Invité : {name}
-              </h1>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="border-primary/30 text-gold font-light tracking-widest px-3 py-1">
+              • Invité : {name}
+              </Badge>
             </div>
-            
-            <div className="w-20" />
           </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="text-center mb-8">
-          <Heart className="mx-auto mb-4 h-10 w-10 text-gold animate-pulse fill-gold" />
-          <p className="text-center text-elegant-gray mb-6">
-            Laissez un vœu plein d'amour pour les mariés
-            <span className="ml-2 text-gold">💕</span>
+      </nav>
+        {/* Main Content */}
+      <div className="container mx-auto px-4 pt-8 max-w-6xl">
+        <header className="text-center mb-10 space-y-4">
+          <div className="flex justify-center mb-6">
+             <div className="p-4 rounded-full bg-primary/5 border border-primary/10">
+                <Stars className="h-10 w-10 text-primary animate-pulse" />
+             </div>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-[0.2em] uppercase text-gold">
+            Partagez l'Instant
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Laissez un souvenir précieux. Votre contribution rend cet événement éternel.
           </p>
-        </div>
+        </header>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          {/* Style commun pour toutes les Cards */}
           {/* Audio Card */}
-          <div className="space-y-6">
-            <Card className="shadow-soft border-gold/20 hover:shadow-elegant transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-elegant-black">
-                  <Mic className="h-5 w-5 text-gold" />
-                  Vœu Audio
-                  <span className="text-gold text-sm ml-1">🎤</span>
-                </CardTitle>
-                <p className="text-sm text-elegant-gray">
-                  Enregistrez un message vocal plein d'émotion pour les mariés
+            <Card className="card-premium h-full flex flex-col group">
+              <CardHeader className="text-center space-y-4 pt-10">
+                <div className="mx-auto p-4 rounded-full bg-white/5 border border-white/10 group-hover:border-primary/40 transition-all">
+                  <Mic className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle className="text-lg uppercase tracking-widest text-gold">Souvenir Vocal</CardTitle>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Enregistrez un message plein d'émotion.
                 </p>
               </CardHeader>
               
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <Button
-                    onClick={isRecording ? stopRecording : handleStartRecording}
-                    variant={isRecording ? "destructive" : "wedding"}
-                    size="lg"
-                    className="w-full"
-                    disabled={isUploading}
-                  >
-                    {isRecording ? (
-                      <>
-                        <Square className="mr-2 h-5 w-5" />
-                        Arrêter ({Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')})
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="mr-2 h-5 w-5" />
-                        Commencer l'enregistrement
-                        <span className="ml-2 text-sm">✨</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {audioUrl && (
-                  <div className="space-y-3">
-                    <div className="bg-secondary/30 p-3 rounded">
-                      <audio controls className="w-full">
-                        <source src={audioUrl} type="audio/webm" />
-                      </audio>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSendAudio}
-                        variant="wedding"
-                        size="sm"
-                        className="flex-1"
-                        disabled={isUploading}
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        {isUploading ? 'Envoi...' : 'Envoyer avec amour'}
-                        {!isUploading && <span className="ml-1 text-sm">💕</span>}
-                      </Button>
-                      <Button
-                        onClick={clearRecording}
-                        variant="outline"
-                        size="sm"
-                        disabled={isUploading}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+              <CardContent className="flex-grow flex flex-col justify-end space-y-6 pb-10">
+              <Button
+                onClick={isRecording ? stopRecording : handleStartRecording}
+                className={`w-full h-14 rounded-full uppercase tracking-widest font-bold shadow-lg transition-all ${
+                  isRecording ? "bg-red-600 hover:bg-red-700 animate-pulse" : "btn-gold"
+                }`}
+                disabled={isUploading}
+              >
+                {isRecording ? (
+                  <><Square className="mr-3 h-5 w-5 fill-current" /> {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</>
+                ) : (
+                  <><Mic className="mr-3 h-5 w-5" /> Enregistrer</>
                 )}
+              </Button>
+                
+
+              {audioUrl && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center gap-3">
+                    <Music className="h-4 w-4 text-primary" />
+                    <audio src={audioUrl} controls className="h-8 w-full invert opacity-80" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSendAudio} className="btn-gold flex-1 h-12 rounded-xl" disabled={isUploading}>
+                      {isUploading ? 'Envoi...' : 'Partager'} <Send className="ml-2 h-4 w-4" />
+                    </Button>
+                    <Button onClick={clearRecording} variant="outline" className="border-white/10 h-12 w-12 rounded-xl" disabled={isUploading}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
               </CardContent>
             </Card>
-          </div>
+          
 
           {/* Text Card */}
-          <div className="space-y-6">
-            <Card className="shadow-soft border-gold/20 hover:shadow-elegant transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-elegant-black">
-                  <MessageSquare className="h-5 w-5 text-gold" />
-                  Message Écrit
-                  <span className="text-gold text-sm ml-1">✍️</span>
-                </CardTitle>
-                <p className="text-sm text-elegant-gray">
-                  Écrivez quelques mots doux qui toucheront le cœur des mariés
-                </p>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="message" className="sr-only">Votre message</Label>
-                  <Textarea
-                    id="message"
-                    value={textMessage}
-                    onChange={(e) => setTextMessage(e.target.value)}
-                    placeholder="Chers amoureux, je vous souhaite..."
-                    className="border-gold/30 focus:border-gold min-h-[120px] resize-none"
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-elegant-gray mt-1">
-                    {textMessage.length}/500 caractères
-                  </p>
+          <Card className="card-premium h-full flex flex-col group">
+            <CardHeader className="text-center space-y-4 pt-10">
+              <div className="mx-auto p-4 rounded-full bg-white/5 border border-white/10 group-hover:border-primary/40 transition-all">
+                <MessageSquare className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg uppercase tracking-widest text-gold">Petit Message</CardTitle>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Écrivez quelques mots qui resteront gravés.
+              </p>
+            </CardHeader>
+            <CardContent className="flex-grow flex flex-col space-y-4 pb-10">
+              <div className="relative">
+                <Textarea
+                  value={textMessage}
+                  onChange={(e) => setTextMessage(e.target.value)}
+                  placeholder="Écrivez ici votre plus beau souvenir..."
+                  className="bg-black/30 border-white/10 focus:border-primary min-h-[160px] p-5 leading-relaxed rounded-2xl resize-none transition-all placeholder:text-muted-foreground/30"
+                  maxLength={500}
+                />
+                <div className="absolute bottom-3 right-4">
+                   <span className="text-[10px] text-muted-foreground/50 font-mono">
+                      {textMessage.length}/500
+                   </span>
                 </div>
-                
-                <Button
-                  onClick={handleSendText}
-                  variant="wedding"
-                  size="lg"
-                  className="w-full"
-                  disabled={!textMessage.trim() || isUploading}
-                >
-                  <Send className="mr-2 h-5 w-5" />
-                  {isUploading ? 'Envoi en cours...' : 'Envoyer mes vœux'}
-                  {!isUploading && <span className="ml-1 text-sm">💌</span>}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              <Button
+                onClick={handleSendText}
+                className="btn-gold w-full h-14 rounded-full uppercase tracking-widest font-bold shadow-lg"
+                disabled={!textMessage.trim() || isUploading}
+              >
+                {isUploading ? 'Transmission...' : 'Envoyer'}
+                {!isUploading && <Send className="ml-3 h-4 w-4" />}
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Media Card */}
-          <div className="space-y-6">
-            <Card className="shadow-soft border-gold/20 hover:shadow-elegant transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-elegant-black">
-                  <Camera className="h-5 w-5 text-gold" />
-                  Photos & Vidéos
-                  <span className="text-gold text-sm ml-1">📸</span>
-                </CardTitle>
-                <p className="text-sm text-elegant-gray">
-                  Partagez vos plus beaux moments de cette soirée magique
-                </p>
-              </CardHeader>
+          <Card className="card-premium h-full flex flex-col group">
+            <CardHeader className="text-center space-y-4 pt-10">
+              <div className="mx-auto p-4 rounded-full bg-white/5 border border-white/10 group-hover:border-primary/40 transition-all">
+                <Camera className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg uppercase tracking-widest text-gold">Captures</CardTitle>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Partagez l'image ou la vidéo de l'instant.
+              </p>
+            </CardHeader>
+            <CardContent className="flex-grow flex flex-col justify-end space-y-6 pb-10">
+              <input id="file-upload" type="file" accept="image/*,video/*" className="sr-only" onChange={handleFileSelect} />
               
-              <CardContent className="space-y-4">
-                <div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/*,video/*"
-                    className="sr-only"
-                    onChange={handleFileSelect}
-                  />
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full border-gold/30 hover:bg-gold/10 text-elegant-black"
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                    disabled={isUploading}
-                  >
-                    <Upload className="mr-2 h-5 w-5" />
-                    Sélectionner une photo ou vidéo
-                    <span className="ml-1 text-sm">✨</span>
+              {!previewUrl ? (
+                <Button
+                  variant="outline"
+                  className="w-full h-14 rounded-full border-white/10 hover:border-primary/50 bg-white/5 uppercase tracking-widest font-bold text-xs"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="mr-3 h-5 w-5" /> Sélectionner
+                </Button>
+              ) : (
+                <div className="space-y-4 animate-in zoom-in-95 duration-300">
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                    {selectedFile?.type.startsWith('image/') ? (
+                      <img src={previewUrl} alt="Aperçu" className="w-full h-full object-cover" />
+                    ) : (
+                      <video src={previewUrl} className="w-full h-full object-cover" />
+                    )}
+                    <button 
+                      onClick={() => {setSelectedFile(null); setPreviewUrl(null);}}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <Button onClick={handleSendFile} className="btn-gold w-full h-12 rounded-xl" disabled={isUploading}>
+                    {isUploading ? 'Partage en cours...' : 'Partager ce moment'}
                   </Button>
                 </div>
-
-                {previewUrl && selectedFile && (
-                  <div className="space-y-3">
-                    <div className="bg-secondary/30 p-3 rounded">
-                      {selectedFile.type.startsWith('image/') ? (
-                        <img
-                          src={previewUrl}
-                          alt="Aperçu"
-                          className="max-w-full max-h-32 mx-auto rounded object-cover"
-                        />
-                      ) : (
-                        <video
-                          src={previewUrl}
-                          controls
-                          className="max-w-full max-h-32 mx-auto rounded"
-                        />
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1 text-center">
-                        {selectedFile.name}
-                      </p>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSendFile}
-                        variant="wedding"
-                        size="sm"
-                        className="flex-1"
-                        disabled={isUploading}
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        {isUploading ? 'Envoi...' : 'Partager ce moment'}
-                        {!isUploading && <span className="ml-1 text-sm">📤</span>}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setSelectedFile(null);
-                          setPreviewUrl(null);
-                        }}
-                        variant="outline"
-                        size="sm"
-                        disabled={isUploading}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="text-center mt-8">
-          <p className="text-sm text-elegant-gray">
-            Un souvenir inoubliable pour les mariés
-            <span className="ml-2 text-gold">✨💕</span>
-          </p>
-        </div>
+        {/* Footer info */}
+        <footer className="mt-20 text-center opacity-40">
+           <div className="flex justify-center items-center gap-4 mb-4">
+              <div className="h-px w-12 bg-gold/50" />
+              <Sparkles className="h-4 w-4 text-gold" />
+              <div className="h-px w-12 bg-gold/50" />
+           </div>
+           <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-serif">
+             Féerie Snap Event • Vos souvenirs sont sacrés
+           </p>
+        </footer>
       </div>
     </div>
   );

@@ -65,7 +65,7 @@ export const useWishUpload = (eventId?: string) => {
         .insert({
           event_id: eventId,
           guest_name: wishData.name,
-          table_number: wishData.tableNumber,
+          table_number: wishData.tableNumber || null,
           type: wishData.type,
           content: wishData.content || null,
           file_url: fileUrl,
