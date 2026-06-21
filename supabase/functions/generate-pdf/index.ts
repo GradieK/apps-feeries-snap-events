@@ -119,7 +119,7 @@ async function generateAndStore(supabase: any, jobId: string, event: any, wishes
     
     const quote1 = "Chaque instant, chaque sourire…";
     const quote2 = "des souvenirs éternels pour une journée d’exception";
-    const brand = "Féerie Snap Event";
+    const brand = "Moments Events by Bless Events";
 
     const q1W = fontBold.widthOfTextAtSize(quote1, 20);
     const q2W = fontItalic.widthOfTextAtSize(quote2, 14);

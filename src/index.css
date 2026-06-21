@@ -4,35 +4,37 @@
 
 @layer base {
   :root {
-    /* Féerie Snap Event - Palette Premium Dark & Gold */
-    --background: 0 0% 0%;        /* Noir Pur */
+    /* Moments Events by Bless Events - Palette Premium Dark & Gold */
+    --background: 0 0% 2%;        /* #050505 — Noir profond */
     --foreground: 45 35% 95%;     /* Blanc cassé pour texte */
 
-    --card: 0 0% 7%;              /* Gris très sombre pour les cartes */
+    --card: 0 0% 5%;              /* Gris très sombre pour les cartes */
     --card-foreground: 45 35% 95%;
 
     --primary: 43 74% 49%;        /* Doré Principal #d4af37 */
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 12%;        /* Gris sombre pour éléments secondaires */
+    --secondary: 0 0% 10%;        /* Gris sombre pour éléments secondaires */
     --secondary-foreground: 45 35% 95%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 10% 65%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 45 10% 60%;
 
     --accent: 43 74% 49%;
     --accent-foreground: 0 0% 0%;
 
-    --border: 0 0% 15%;
-    --input: 0 0% 10%;
+    --border: 0 0% 13%;
+    --input: 0 0% 8%;
     --ring: 43 74% 49%;
 
     --radius: 0.75rem;
 
-    /* Tokens spécifiques Féerie */
+    /* Tokens design system Moments Events */
     --gold-texturé: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
     --gold-solid: 43 74% 49%;
     --shadow-gold: 0 10px 30px -10px hsl(43 74% 49% / 0.4);
+    --nav-bg: rgba(0, 0, 0, 0.5);
+    --nav-border: rgba(255, 255, 255, 0.05);
   }
 }
 
@@ -42,27 +44,65 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* Ajout d'une légère texture de fond pour le côté premium */
-    background-image: radial-gradient(circle at center, #111 0%, #000 100%);
+    background-image: radial-gradient(circle at center, #111 0%, #050505 100%);
   }
 }
 
 @layer components {
+  /* ── Bouton CTA doré ── */
   .btn-gold {
     background: var(--gold-texturé);
-    @apply text-black font-bold py-2 px-4 rounded-md transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95 shadow-lg;
+    @apply text-black font-bold py-2 px-4 transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95 shadow-lg;
     box-shadow: var(--shadow-gold);
   }
-  
+
+  /* ── Carte premium ── */
   .card-premium {
     @apply bg-card border border-white/5 rounded-xl p-6 transition-all duration-300 hover:border-primary/30;
     background-image: linear-gradient(to bottom right, rgba(255,255,255,0.03), transparent);
   }
 
+  /* ── Texte dégradé or ── */
   .text-gold {
     background: var(--gold-texturé);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    display: inline-block;
     @apply font-bold;
+  }
+
+  /* ── Fond dégradé or (badges, QR code) ── */
+  .gold-gradient-bg {
+    background: linear-gradient(135deg, #BF953F 0%, #FCF6BA 45%, #B38728 100%);
+  }
+
+  /* ── Navbar partagée — pages internes ── */
+  .app-nav {
+    @apply border-b border-white/5 bg-black/50 backdrop-blur-md sticky top-0 z-50;
+  }
+  .app-nav-inner {
+    @apply container mx-auto px-6 py-4 flex items-center justify-between;
+  }
+
+  /* ── Loader standard ── */
+  .page-loader {
+    @apply min-h-screen bg-background flex items-center justify-center;
+  }
+  .page-loader-inner {
+    @apply flex flex-col items-center gap-4;
+  }
+
+  /* ── Footer partagé ── */
+  .page-footer {
+    @apply pt-16 pb-10 text-center opacity-30;
+  }
+  .page-footer-divider {
+    @apply flex justify-center items-center gap-4 mb-4;
+  }
+  .page-footer-line {
+    @apply h-px w-8 bg-primary/50;
+  }
+  .page-footer-text {
+    @apply text-[9px] uppercase tracking-[0.5em] text-muted-foreground font-serif;
   }
 }

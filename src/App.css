@@ -9,14 +9,14 @@
   @apply flex justify-center mb-10;
 }
 
-.logo-feerie {
-  height: 120px; /* Plus grand pour l'impact */
+.logo-moments {
+  height: 120px;
   will-change: filter;
   transition: filter 400ms ease;
   filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.2));
 }
 
-.logo-feerie:hover {
+.logo-moments:hover {
   filter: drop-shadow(0 0 25px rgba(212, 175, 55, 0.5));
 }
 

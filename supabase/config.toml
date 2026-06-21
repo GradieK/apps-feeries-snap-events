@@ -430,3 +430,23 @@ entrypoint = "./functions/check-video-status/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/check-video-status/*.html" ]
+
+# ─── Intégration Bless Events ────────────────────────────────────────────────
+
+[functions.provision-bless-event]
+enabled = true
+verify_jwt = false
+import_map = "./functions/provision-bless-event/deno.json"
+entrypoint = "./functions/provision-bless-event/index.ts"
+
+[functions.sso-token]
+enabled = true
+verify_jwt = false
+import_map = "./functions/sso-token/deno.json"
+entrypoint = "./functions/sso-token/index.ts"
+
+[functions.event-stats]
+enabled = true
+verify_jwt = false
+import_map = "./functions/event-stats/deno.json"
+entrypoint = "./functions/event-stats/index.ts"
