@@ -1,13 +1,25 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGeneration } from "@/hooks/useGeneration";
-import { FileText, Video, Download, Loader2, AlertCircle, CheckCircle2, Sparkles,Lock } from "lucide-react";
+import { FileText, Video, Download, Loader2, AlertCircle, CheckCircle2, Sparkles, Lock } from "lucide-react";
 
 interface GenerationPanelProps {
   eventId: string;
 }
 
+const THEMES = [
+  { id: "noir",     label: "Noir & Or",      bg: "#000000", ring: "#D4AF37" },
+  { id: "ivoire",   label: "Ivoire & Or",    bg: "#FAF7F2", ring: "#B38728" },
+  { id: "marine",   label: "Marine & Or",    bg: "#0A1628", ring: "#D4AF37" },
+  { id: "bordeaux", label: "Bordeaux & Or",  bg: "#2C0A0A", ring: "#D4AF37" },
+] as const;
+
+type ThemeId = typeof THEMES[number]["id"];
+
 export function GenerationPanel({ eventId }: GenerationPanelProps) {
+  const [albumTheme, setAlbumTheme] = useState<ThemeId>("noir");
+
   const {
     pdfJob,
     videoJob,
@@ -34,15 +46,51 @@ export function GenerationPanel({ eventId }: GenerationPanelProps) {
               <FileText className="h-5 w-5 text-gold" />
               <span className="font-semibold text-elegant-black">Album PDF souvenir</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Génère un album PDF élégant avec tous les vœux, photos et messages de vos invités.
+            <p className="text-sm text-muted-foreground mb-3">
+              Génère un album panoramique luxe avec tous les vœux, photos et messages de vos invités.
             </p>
+
+            {/* Sélecteur de thème */}
+            <div className="mb-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Couleur de fond
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {THEMES.map(({ id, label, bg, ring }) => (
+                  <button
+                    key={id}
+                    onClick={() => setAlbumTheme(id)}
+                    title={label}
+                    className={`relative h-7 w-7 rounded-full border-2 transition-all duration-200 ${
+                      albumTheme === id
+                        ? "scale-110 shadow-md"
+                        : "opacity-60 hover:opacity-90"
+                    }`}
+                    style={{
+                      backgroundColor: bg,
+                      borderColor: albumTheme === id ? ring : "rgba(255,255,255,0.15)",
+                      boxShadow: albumTheme === id ? `0 0 0 2px ${ring}40` : undefined,
+                    }}
+                  >
+                    {albumTheme === id && (
+                      <span
+                        className="absolute inset-0 rounded-full"
+                        style={{ boxShadow: `inset 0 0 0 1.5px ${ring}` }}
+                      />
+                    )}
+                  </button>
+                ))}
+                <span className="self-center text-[11px] text-muted-foreground ml-1">
+                  {THEMES.find(t => t.id === albumTheme)?.label}
+                </span>
+              </div>
+            </div>
 
             <StatusBadge job={pdfJob} />
 
             <div className="flex gap-2 mt-3">
               <Button
-                onClick={generatePdf}
+                onClick={() => generatePdf(albumTheme)}
                 disabled={isGeneratingPdf}
                 variant="wedding"
                 size="sm"

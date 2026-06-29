@@ -16,7 +16,7 @@ interface UseGenerationReturn {
   videoJob: GenerationJob | null;
   isGeneratingPdf: boolean;
   isGeneratingVideo: boolean;
-  generatePdf: () => Promise<void>;
+  generatePdf: (theme?: string) => Promise<void>;
   generateVideo: () => Promise<void>;
 }
 
@@ -102,23 +102,22 @@ useEffect(() => {
 }, [eventId, videoJob?.status, videoJob?.id]);
 
   // ── Lancer la génération PDF ──
-  // ── Lancer la génération PDF ──
-const generatePdf = async () => {
+  const generatePdf = async (theme = "noir") => {
     if (!eventId) return;
     setPdfJob({ id: "", type: "pdf", status: "processing", output_url: null, error_message: null });
-  
-    // Récupère le token de session explicitement
+
     const { data: { session } } = await supabase.auth.getSession();
-    console.log("SESSION TOKEN:", session?.access_token ? "✅ présent" : "❌ absent");
-    console.log("USER:", session?.user?.email);
-  
+    if (import.meta.env.DEV) {
+      console.log("SESSION TOKEN:", session?.access_token ? "✅ présent" : "❌ absent");
+      console.log("USER:", session?.user?.email);
+      console.log("THEME:", theme);
+    }
+
     const { data, error } = await supabase.functions.invoke("generate-pdf", {
-      body: { eventId },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`, // token explicite
-      },
+      body: { eventId, theme },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
-  
+
     if (error) {
       setPdfJob({ id: "", type: "pdf", status: "error", output_url: null, error_message: error.message });
     } else {
