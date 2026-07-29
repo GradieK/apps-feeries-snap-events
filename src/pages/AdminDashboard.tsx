@@ -57,8 +57,10 @@ const AdminDashboard = () => {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
   const blessRole = (user as any)?.app_metadata?.bless_role as "admin" | "organizer" | undefined;
+  const blessEventId = (user as any)?.app_metadata?.bless_event_id as string | undefined;
   const isBlessAdmin = blessRole === "admin";
-  const isBlessUser = blessRole === "admin" || blessRole === "organizer";
+  const isBlessOrganizer = blessRole === "organizer";
+  const isBlessUser = isBlessAdmin || isBlessOrganizer;
 
   const loadEvents = async () => {
     if (!user) return;
@@ -67,6 +69,15 @@ const AdminDashboard = () => {
     let query = supabase.from("events").select("*");
     if (isBlessAdmin) {
       query = query.eq("source", "bless_events");
+    } else if (isBlessOrganizer) {
+      // Lié via bless_event_id (stable), pas via owner_id qui dépend de l'email
+      // utilisé lors du provisioning côté Bless Events.
+      if (!blessEventId) {
+        setEvents([]);
+        setIsLoadingEvents(false);
+        return;
+      }
+      query = query.eq("bless_event_id", blessEventId);
     } else {
       query = query.eq("owner_id", user.id);
     }

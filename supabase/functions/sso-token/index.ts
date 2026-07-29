@@ -49,30 +49,7 @@ Deno.serve(async (req) => {
 
     const baseUrl = Deno.env.get("VOEUX_BASE_URL") ?? "https://moment-events.vercel.app";
 
-    // Trouver ou créer l'utilisateur dans Voeux Festifs
-    const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    const existingUser = users?.find((u) => u.email === email);
-
-    if (existingUser) {
-      // Mettre à jour le rôle Bless si nécessaire
-      const currentRole = existingUser.app_metadata?.bless_role;
-      if (currentRole !== role) {
-        await supabase.auth.admin.updateUserById(existingUser.id, {
-          app_metadata: { ...existingUser.app_metadata, bless_role: role },
-        });
-      }
-    } else {
-      // Créer le compte avec le bon rôle
-      const { error: createErr } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        password: crypto.randomUUID(),
-        app_metadata: { bless_role: role },
-      });
-      if (createErr) throw createErr;
-    }
-
-    // Pour l'organisateur : vérifier que son événement existe
+    // Pour l'organisateur : vérifier que son événement existe AVANT de toucher au compte
     if (role === "organizer") {
       const { data: event } = await supabase
         .from("events")
@@ -86,6 +63,32 @@ Deno.serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+    }
+
+    // app_metadata cible : le lien vers l'événement est stocké sur le compte, pas déduit
+    // par correspondance d'email avec owner_id (source d'incohérences si les emails diffèrent
+    // entre provision-bless-event et sso-token).
+    const targetAppMetadata =
+      role === "organizer" ? { bless_role: role, bless_event_id } : { bless_role: role, bless_event_id: null };
+
+    // Trouver ou créer l'utilisateur dans Voeux Festifs
+    const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    const existingUser = users?.find((u) => u.email === email);
+
+    if (existingUser) {
+      // Toujours resynchroniser le rôle + l'événement lié, pas seulement si le rôle a changé
+      await supabase.auth.admin.updateUserById(existingUser.id, {
+        app_metadata: { ...existingUser.app_metadata, ...targetAppMetadata },
+      });
+    } else {
+      // Créer le compte avec le bon rôle
+      const { error: createErr } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        password: crypto.randomUUID(),
+        app_metadata: targetAppMetadata,
+      });
+      if (createErr) throw createErr;
     }
 
     // Générer le magic link — toujours vers /dashboard
